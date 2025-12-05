@@ -49,6 +49,20 @@ jobs:
             sleep 2
           done
 
+      - name: Create required databases
+        run: |
+          # Install PostgreSQL client
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client
+          
+          # Create fastapi_db if missing (the app uses this)
+          PGPASSWORD=postgres psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='fastapi_db'" | grep -q 1 || \
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE fastapi_db;"
+          
+          # Create fastapi_test_db if missing (for tests)
+          PGPASSWORD=postgres psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='fastapi_test_db'" | grep -q 1 || \
+          PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE fastapi_test_db;"
+
       - name: Run tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fastapi_db
