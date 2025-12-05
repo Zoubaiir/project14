@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:latest
+        image: postgres:17
         env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: mytestdb  # <-- Dedicated test DB name
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fastapi_db
         ports:
           - 5432:5432
         options: >-
@@ -38,29 +38,21 @@ jobs:
             ${{ runner.os }}-pip-
       
       - name: Install dependencies
-        env:
-          DATABASE_URL: postgresql://user:password@localhost:5432/mytestdb
         run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
-          playwright install  # if you use Playwright for e2e tests
       
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://user:password@localhost:5432/mytestdb
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fastapi_db
+          TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fastapi_test_db
+          JWT_SECRET_KEY: "test-secret-key-min-32-characters-long"
+          JWT_REFRESH_SECRET_KEY: "test-refresh-secret-key-min-32-chars"
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          REFRESH_TOKEN_EXPIRE_DAYS: 7
+          BCRYPT_ROUNDS: 12
         run: |
-          source venv/bin/activate
-          
-          # 1) Unit tests
-          pytest tests/unit/ --cov=src --junitxml=test-results/junit.xml
-          
-          # 2) Integration tests
-          pytest tests/integration/
-          
-          # 3) E2E or other tests
-          pytest tests/e2e/
+          pytest tests/ -v --tb=short
 
   security:
     needs: test
